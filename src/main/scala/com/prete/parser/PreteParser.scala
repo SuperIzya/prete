@@ -1,0 +1,75 @@
+package com.prete.parser
+
+import scala.util.parsing.combinator._
+import scala.util.parsing.input.{NoPosition, Position, Reader}
+
+class WorkflowTokenReader(tokens: Seq[PreteToken]) extends Reader[PreteToken] {
+  override def first: PreteToken = tokens.head
+  override def atEnd: Boolean = tokens.isEmpty
+  override def pos: Position = NoPosition
+  override def rest: Reader[PreteToken] = new WorkflowTokenReader(tokens.tail)
+}
+
+sealed trait PreteAST
+case class FieldDefinition(name: String) extends PreteAST
+case class ObjectDefinition(name: String, fields: List[FieldDefinition] = List.empty) extends PreteAST
+
+case class RuleDefinition(name: String, lhs: List[ConditionDefinition.type], rhs: List[CommandDefinition.type]) extends PreteAST
+case object ConditionDefinition extends PreteAST
+case object CommandDefinition extends PreteAST
+
+object PreteParser extends Parsers {
+
+  override type Elem = PreteToken
+  import Tokens._
+
+  private def identifier: Parser[Symbol] = {
+    accept("identifier", { case id @ Symbol(_) => id })
+  }
+
+  private def literal: Parser[String] = {
+    accept("string literal", { case lit @ String(_) => lit })
+  }
+
+
+  def defField: Parser[FieldDefinition] = {
+    identifier ^^ { case Symbol(name) => FieldDefinition(name) }
+  }
+
+  def defObject: Parser[ObjectDefinition] = {
+    (DefObject ~ identifier ~ Indent ~ opt(defField) ~ Dedent) ^^ {
+      case _ ~ Symbol(name) ~ _ ~ fields ~ _ => ObjectDefinition(name, fields.toList)
+    }
+  }
+
+  def command: Parser[CommandDefinition.type] = null
+  def condition: Parser[ConditionDefinition.type] = null
+
+  def optBlock[TypeAST](P: Parser[TypeAST]): Parser[List[TypeAST]] = opt(Indent ~ rep1(P) ~ Dedent) ^^ {
+    case Some(value) => value match {
+      case _ ~ vals ~ _ => vals
+    }
+  }
+
+  def defRule: Parser[RuleDefinition] = {
+    (DefRule ~ identifier ~
+      optBlock(condition) ~
+      Arrow ~
+      optBlock(command) ) ^^ {
+      case _ ~ Symbol(name) ~ lhs ~ _ ~ rhs => RuleDefinition(name, lhs, rhs)
+    }
+  }
+
+  def block: Parser[List[PreteAST]] = rep(defObject) ~ rep(defRule) ^^ {
+    case objs ~ rules => objs ++ rules
+  }
+
+  def program : Parser[List[PreteAST]] = phrase(block)
+  def apply(tokens: Seq[PreteToken]): Either[PreteParserError, List[PreteAST]] = {
+    val reader = new WorkflowTokenReader(tokens)
+    program(reader) match {
+      case NoSuccess(msg, next) => Left(PreteParserError(Location(next.pos.line, next.pos.column), msg))
+      case Success(result, _) => Right(result)
+    }
+  }
+}
