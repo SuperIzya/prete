@@ -36,20 +36,28 @@ object PreteParser extends Parsers {
     identifier ^^ { case Symbol(name) => FieldDefinition(name) }
   }
 
+  def optBlock[TypeAST](P: Parser[TypeAST]): Parser[List[TypeAST]] =
+    opt(Indent ~ rep1(P) ~ Dedent) ^^ {
+      case None => List.empty
+      case Some(value) => value match {
+        case _ ~ vals ~ _ => vals
+      }
+    }
+
+  def trimBlock[TypeAST](P: Parser[TypeAST]): Parser[TypeAST] =
+    rep(Indent | Dedent) ~ P ~ rep(Indent | Dedent) ^^ {
+      case _ ~ vals ~ _ => vals
+    }
+
   def defObject: Parser[ObjectDefinition] = {
-    (DefObject ~ identifier ~ Indent ~ opt(defField) ~ Dedent) ^^ {
-      case _ ~ Symbol(name) ~ _ ~ fields ~ _ => ObjectDefinition(name, fields.toList)
+    (DefObject ~ identifier ~ optBlock(defField)) ^^ {
+      case _ ~ Symbol(name) ~ fields => ObjectDefinition(name, fields)
     }
   }
 
   def command: Parser[CommandDefinition.type] = null
   def condition: Parser[ConditionDefinition.type] = null
 
-  def optBlock[TypeAST](P: Parser[TypeAST]): Parser[List[TypeAST]] = opt(Indent ~ rep1(P) ~ Dedent) ^^ {
-    case Some(value) => value match {
-      case _ ~ vals ~ _ => vals
-    }
-  }
 
   def defRule: Parser[RuleDefinition] = {
     (DefRule ~ identifier ~
@@ -60,11 +68,15 @@ object PreteParser extends Parsers {
     }
   }
 
-  def block: Parser[List[PreteAST]] = rep(defObject) ~ rep(defRule) ^^ {
-    case objs ~ rules => objs ++ rules
-  }
 
-  def program : Parser[List[PreteAST]] = phrase(block)
+
+  def block: Parser[List[PreteAST]] = phrase(
+    rep(trimBlock(defObject)) ~ rep(trimBlock(defRule)) ^^ {
+      case objs ~ rules => objs ++ rules
+    }
+  )
+
+  def program : Parser[List[PreteAST]] = block
   def apply(tokens: Seq[PreteToken]): Either[PreteParserError, List[PreteAST]] = {
     val reader = new WorkflowTokenReader(tokens)
     program(reader) match {

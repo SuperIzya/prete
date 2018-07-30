@@ -10,7 +10,7 @@ class PreteParserTests extends FlatSpec with Matchers with EitherValues with Ins
         |object SuperObject1
         |
         |object SuperObject2
-        | filed1
+        | field1
         |
       """.stripMargin)
 

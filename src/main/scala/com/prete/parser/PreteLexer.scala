@@ -44,10 +44,10 @@ class PreteParsers extends RegexParsers {
   override val whiteSpace = "[ \t\r\f]+".r
   val symbolRe = "[a-zA-Z_][a-zA-Z_0-9]*"
   val intRe = "[0-9]+"
-  def string: Parser[Tokens.String] = s""""$symbolRe"""".r ^^ { t => Tokens.String(t.substring(1, t.length - 1)) }
-  def symbol: Parser[Tokens.Symbol] = symbolRe.r ^^ { x => Tokens.Symbol(x) }
-  def integer: Parser[Tokens.Integer] = intRe.r ^^ { x => Tokens.Integer(x.toInt) }
-  def float: Parser[Tokens.Float] = s"$intRe.$intRe".r ^^ { x => Tokens.Float(x.toFloat) }
+  def string: Parser[String] = s""""$symbolRe"""".r ^^ { t => String(t.substring(1, t.length - 1)) }
+  def symbol: Parser[Symbol] = symbolRe.r ^^ { x => Symbol(x) }
+  def integer: Parser[Integer] = intRe.r ^^ { x => Integer(x.toInt) }
+  def float: Parser[Float] = s"$intRe.$intRe".r ^^ { x => Float(x.toFloat) }
   def colon= ":".r ^^ { _ => Colon }
   def arrow = "=>".r ^^ { _ => Arrow }
 
@@ -71,14 +71,9 @@ class PreteParsers extends RegexParsers {
     val head::tail = parsers
     phrase(
       rep1( tail.foldLeft(head)(_ | _) )
-    )
+    ) ^^ { processIndentations(_) }
   }
-}
 
-object PreteParsers extends PreteParsers
-
-object Transformations {
-  import Tokens._
   def processIndentations(tokens: List[PreteToken],
                           indents: List[Int] = List(0)): List[PreteToken] = {
     tokens.headOption match {
@@ -95,7 +90,8 @@ object Transformations {
         (dropped map (_ => Dedent)) ::: processIndentations(tokens.tail, kept)
 
       // if the indentation level stays unchanged, no tokens are produced
-      case Some(IndentCount(spaces)) if spaces == indents.head =>
+      // if the identation level is 0 then it's just a separation line
+      case Some(IndentCount(spaces)) if spaces == 0 || spaces == indents.head =>
         processIndentations(tokens.tail, indents)
 
       // other tokens are ignored
