@@ -13,15 +13,20 @@ case class Location(line: Int, column: Int) {
 
 
 sealed trait PreteToken
+trait WithValue[T] { this: PreteToken =>
+  val value: T
+}
 object Tokens {
 
-  case class Symbol(name: java.lang.String) extends PreteToken
+  private type _String = java.lang.String
+  private type _Integer = java.lang.Integer
+  private type _Float = java.lang.Float
 
-  case class Integer(value: java.lang.Integer) extends PreteToken
+  case class Symbol(value: _String) extends PreteToken with WithValue[_String]
+  case class Integer(value: Int) extends PreteToken with WithValue[Int]
+  case class Float(value: _Float) extends PreteToken with WithValue[_Float]
+  case class String(value: _String) extends PreteToken with WithValue[_String]
 
-  case class Float(value: java.lang.Float) extends PreteToken
-
-  case class String(value: java.lang.String) extends PreteToken
   case object Colon extends PreteToken
   case object OpenBracket extends PreteToken
   case object CloseBracket extends PreteToken
@@ -30,7 +35,14 @@ object Tokens {
   case object Dedent extends PreteToken
   case object Indent extends PreteToken
   case object Arrow extends PreteToken
-
+  case object BackArrow extends PreteToken
+  case object Dot extends PreteToken
+  case object Eq extends PreteToken
+  case object Neq extends PreteToken
+  case object Lt extends PreteToken
+  case object Le extends PreteToken
+  case object Gt extends PreteToken
+  case object Ge extends PreteToken
 
   case object DefObject extends PreteToken
   case object DefRule extends PreteToken
@@ -44,27 +56,29 @@ class PreteParsers extends RegexParsers {
   override val whiteSpace = "[ \t\r\f]+".r
   val symbolRe = "[a-zA-Z_][a-zA-Z_0-9]*"
   val intRe = "[0-9]+"
-  def string: Parser[String] = s""""$symbolRe"""".r ^^ { t => String(t.substring(1, t.length - 1)) }
-  def symbol: Parser[Symbol] = symbolRe.r ^^ { x => Symbol(x) }
-  def integer: Parser[Integer] = intRe.r ^^ { x => Integer(x.toInt) }
-  def float: Parser[Float] = s"$intRe.$intRe".r ^^ { x => Float(x.toFloat) }
-  def colon= ":".r ^^ { _ => Colon }
-  def arrow = "=>".r ^^ { _ => Arrow }
+  val parsers = List[Parser[PreteToken]](
+    "object".r ^^ { _ => DefObject },
+    "rule".r ^^ { _ => DefRule },
+    s""""$symbolRe"""".r ^^ { t => String(t.substring(1, t.length - 1)) },
+    symbolRe.r ^^ { x => Symbol(x) },
+    s"(\\+|\\-)?$intRe.$intRe".r ^^ { x => Float(x.toFloat) },
+    s"(\\+|\\-)?$intRe".r ^^ { x => Integer(x.toInt) },
 
-  def indentation: Parser[IndentCount] =  "\n[ ]*".r ^^ { whitespace => IndentCount(whitespace.length - 1) }
-  def defObject = "object".r ^^ { _ => DefObject }
-  def defRule = "rule".r ^^ { _ => DefRule }
+    "\n[ ]*".r ^^ { whitespace => IndentCount(whitespace.length - 1) },
 
-  val parsers = Seq(
-    defObject,
-    defRule,
 
-    string,
-    symbol,
-    float,
-    integer,
-    colon,
-    indentation,
+    "=>".r ^^ { _ => Arrow },
+    ":".r ^^ { _ => Colon },
+    "<-".r ^^ { _ => BackArrow },
+
+    "==".r ^^ { _ => Eq },
+    "!=".r ^^ { _ => Neq },
+    ">=".r ^^ { _ => Ge },
+    ">".r ^^ { _ => Gt },
+    "<=".r ^^ { _ => Le },
+    "<".r ^^ { _ => Lt },
+
+    ".".r ^^ { _ => Dot },
   )
 
   def devour: Parser[List[PreteToken]] = {

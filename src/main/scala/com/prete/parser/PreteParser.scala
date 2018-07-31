@@ -1,40 +1,50 @@
 package com.prete.parser
 
+import java.util.function.Predicate
+
 import scala.util.parsing.combinator._
 import scala.util.parsing.input.{NoPosition, Position, Reader}
 
-class WorkflowTokenReader(tokens: Seq[PreteToken]) extends Reader[PreteToken] {
+class PreteTokenReader(tokens: Seq[PreteToken]) extends Reader[PreteToken] {
   override def first: PreteToken = tokens.head
   override def atEnd: Boolean = tokens.isEmpty
   override def pos: Position = NoPosition
-  override def rest: Reader[PreteToken] = new WorkflowTokenReader(tokens.tail)
+  override def rest: Reader[PreteToken] = new PreteTokenReader(tokens.tail)
 }
 
 sealed trait PreteAST
-case class FieldDefinition(name: String) extends PreteAST
-case class ObjectDefinition(name: String, fields: List[FieldDefinition] = List.empty) extends PreteAST
+case class FieldAddress(objName: String, field: String) extends PreteAST
+case class Value(value: WithValue[_]) extends PreteAST
 
-case class RuleDefinition(name: String, lhs: List[ConditionDefinition.type], rhs: List[CommandDefinition.type]) extends PreteAST
-case object ConditionDefinition extends PreteAST
-case object CommandDefinition extends PreteAST
-
-object PreteParser extends Parsers {
-
+trait PreteTokenParser extends Parsers {
   override type Elem = PreteToken
-  import Tokens._
+}
 
-  private def identifier: Parser[Symbol] = {
+trait BaseParser extends Parsers with PreteTokenParser {
+  import Tokens._
+  def identifier: Parser[Symbol] = {
     accept("identifier", { case id @ Symbol(_) => id })
   }
 
-  private def literal: Parser[String] = {
-    accept("string literal", { case lit @ String(_) => lit })
+  def literal: Parser[Value] = {
+    accept("string literal", { case lit @ String(_) => Value(lit) })
   }
 
-
-  def defField: Parser[FieldDefinition] = {
-    identifier ^^ { case Symbol(name) => FieldDefinition(name) }
+  def float: Parser[Value] = {
+    accept("float", { case num @ Float(_) => Value(num)})
   }
+  def integer: Parser[Value] = {
+    accept("integer", { case num @ Integer(_) => Value(num) })
+  }
+  def staticValue: Parser[Value] = integer | float | literal
+
+  def fieldAddress: Parser[FieldAddress] = identifier ~ Dot ~ identifier ^^ {
+    case Symbol(name) ~ _ ~ Symbol(field) => FieldAddress(name, field)
+  }
+}
+
+trait BlockParser extends Parsers with PreteTokenParser {
+  import Tokens._
 
   def optBlock[TypeAST](P: Parser[TypeAST]): Parser[List[TypeAST]] =
     opt(Indent ~ rep1(P) ~ Dedent) ^^ {
@@ -49,39 +59,13 @@ object PreteParser extends Parsers {
       case _ ~ vals ~ _ => vals
     }
 
-  def defObject: Parser[ObjectDefinition] = {
-    (DefObject ~ identifier ~ optBlock(defField)) ^^ {
-      case _ ~ Symbol(name) ~ fields => ObjectDefinition(name, fields)
-    }
-  }
-
-  def command: Parser[CommandDefinition.type] = null
-  def condition: Parser[ConditionDefinition.type] = null
-
-
-  def defRule: Parser[RuleDefinition] = {
-    (DefRule ~ identifier ~
-      optBlock(condition) ~
-      Arrow ~
-      optBlock(command) ) ^^ {
-      case _ ~ Symbol(name) ~ lhs ~ _ ~ rhs => RuleDefinition(name, lhs, rhs)
-    }
-  }
-
-
-
-  def block: Parser[List[PreteAST]] = phrase(
-    rep(trimBlock(defObject)) ~ rep(trimBlock(defRule)) ^^ {
-      case objs ~ rules => objs ++ rules
-    }
-  )
-
-  def program : Parser[List[PreteAST]] = block
-  def apply(tokens: Seq[PreteToken]): Either[PreteParserError, List[PreteAST]] = {
-    val reader = new WorkflowTokenReader(tokens)
-    program(reader) match {
-      case NoSuccess(msg, next) => Left(PreteParserError(Location(next.pos.line, next.pos.column), msg))
-      case Success(result, _) => Right(result)
-    }
-  }
 }
+
+case class FieldDefinition(name: String) extends PreteAST
+case class ObjectDefinition(name: String, fields: List[FieldDefinition] = List.empty) extends PreteAST
+
+case class RuleDefinition(name: String, lhs: List[PreteAST], rhs: List[PreteAST]) extends PreteAST
+case class Introduction(name: String, typeName: String) extends PreteAST
+case class AlphaCondition(predicate: PreteToken, left: FieldAddress, right: Value) extends PreteAST
+case class BetaCondition(predicate: PreteToken, left: FieldAddress, right: FieldAddress) extends PreteAST
+case class StaticCondition(predicate: PreteToken, left: Value, right: Value) extends PreteAST
