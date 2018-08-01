@@ -65,7 +65,7 @@ case class FieldDefinition(name: String) extends PreteAST
 case class ObjectDefinition(name: String, fields: List[FieldDefinition] = List.empty) extends PreteAST
 
 case class RuleDefinition(name: String, lhs: List[PreteAST], rhs: List[PreteAST]) extends PreteAST
-case class Introduction(name: String, typeName: String) extends PreteAST
-case class AlphaCondition(predicate: PreteToken, left: FieldAddress, right: Value) extends PreteAST
-case class BetaCondition(predicate: PreteToken, left: FieldAddress, right: FieldAddress) extends PreteAST
-case class StaticCondition(predicate: PreteToken, left: Value, right: Value) extends PreteAST
+case class Declaration(name: String, typeName: String) extends PreteAST
+case class ConstCompare(predicate: PreteToken, left: FieldAddress, right: Value) extends PreteAST
+case class FieldsCompare(predicate: PreteToken, left: FieldAddress, right: FieldAddress) extends PreteAST
+case class StaticCompare(predicate: PreteToken, left: Value, right: Value) extends PreteAST

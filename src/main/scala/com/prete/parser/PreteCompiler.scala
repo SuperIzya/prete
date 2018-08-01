@@ -23,6 +23,7 @@ object PreteParser extends Parsers
     }
   }
 }
+
 object PreteCompiler {
   def apply(code: String): Either[PreteCompilationError, List[PreteAST]] = {
     for {
