@@ -47,12 +47,16 @@ object Tokens {
 
 class PreteTokenizer extends RegexParsers {
   import Tokens._
-  override def skipWhitespace = true
-  override val whiteSpace = "[ \t\r\f]+".r
-  val symbolRe = "[a-zA-Z_][a-zA-Z_0-9]*"
-  val intRe = "[0-9]+"
   type PreteTokenParser = Parser[PreteToken]
   type PreteParserFunction = _String => PreteToken
+
+  val whiteSpaceRe = """[ \t\r\f]+"""
+  val symbolRe = "[a-zA-Z_][a-zA-Z_0-9]*"
+  val stringRe = s""""${symbolRe}($whiteSpaceRe$symbolRe)*""""
+  val intRe = "[0-9]+"
+
+  override def skipWhitespace = true
+  override val whiteSpace = "[ \t\r\f]+".r
   protected var additionalTokenizers: Map[_String, PreteParserFunction] = Map.empty
   protected val coreTokenizers = List(
     "object".r ^^ { _ => DefFact },
@@ -64,7 +68,7 @@ class PreteTokenizer extends RegexParsers {
   )
   protected val basicTokenizers = List(
 
-    s""""$symbolRe"""".r ^^ { t => String(t.substring(1, t.length - 1)) },
+    stringRe.r ^^ { t => String(t.substring(1, t.length - 1)) },
     symbolRe.r ^^ { x => Symbol(x) },
     s"(\\+|\\-)?$intRe.$intRe".r ^^ { x => Float(x.toFloat) },
     s"(\\+|\\-)?$intRe".r ^^ { x => Integer(x.toInt) },

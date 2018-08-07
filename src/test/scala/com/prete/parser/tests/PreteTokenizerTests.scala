@@ -1,48 +1,26 @@
 package com.prete.parser.tests
 import org.scalatest._
-
-
-import com.prete.parser.{PreteTokenizer, Tokens}
+import com.prete.parser.{PreteTokenizer, Tokens, WithValue}
 
 class PreteTokenizerTests extends FlatSpec with Matchers with EitherValues with Inspectors with Inside {
 
   "PreteTokenizer" should "parse primitive values correctly" in {
-
-    val intVal = 1
-    val stringVal = "abc"
-    val floatVal = 1.1f
-    val symbolVal = "abc21313_1230"
-    val objectName = "SuperObject"
-
     val tokenizer = PreteTokenizer()
 
-    val intRes = tokenizer(s"$intVal")
-    val stringRes = tokenizer(s""""$stringVal"""")
-    val floatRes = tokenizer(s"$floatVal")
-    val symbolRes = tokenizer(s"$symbolVal")
-    val defObjectRes = tokenizer(s"object $objectName")
-
-    val results = Seq(
-      intRes,
-      stringRes,
-      floatRes,
-      symbolRes,
-      defObjectRes
-    )
-
-    forAll(results) { r =>
-      r should be ('right)
+    val data = List(1, -1, +1, "\"abx\"", "asdsad22344_234sdf32", "\"a234sadf asdasd 32\"", 1.1f, -32.23f)
+    val results1 = data.map{ v => (v, tokenizer(s"$v"))}
+    forAll(results1) { r =>
+      r._2 should be ('right)
+      r._2.right.value shouldNot be(empty)
+      val res = r._2.right.value.head.asInstanceOf[WithValue[_]]
+      res match {
+        case _: Tokens.String =>
+          val str = r._1.asInstanceOf[String]
+          val v = str.substring(1, str.length - 1)
+          res.value should be(v)
+        case _ => res.value should be(r._1)
+      }
     }
-
-    val values = results.map {
-      _.right.value
-    }
-
-    inside(values(0)) { case List(Tokens.Integer(v)) => v should be(intVal) }
-    inside(values(1)) { case List(Tokens.String(v)) => v should be(stringVal) }
-    inside(values(2)) { case List(Tokens.Float(v)) => v should be(floatVal) }
-    inside(values(3)) { case List(Tokens.Symbol(v)) => v should be(symbolVal) }
-    inside(values(4)) { case List(Tokens.DefFact, Tokens.Symbol(n)) => n should be(objectName)}
   }
 
   "PreteTokenizer" should "fail on wrong input" in {
