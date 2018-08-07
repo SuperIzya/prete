@@ -41,7 +41,7 @@ class PreteLexerTests extends FlatSpec with Matchers with EitherValues with Insp
     inside(values(1)) { case List(Tokens.String(v)) => v should be(stringVal) }
     inside(values(2)) { case List(Tokens.Float(v)) => v should be(floatVal) }
     inside(values(3)) { case List(Tokens.Symbol(v)) => v should be(symbolVal) }
-    inside(values(4)) { case List(Tokens.DefObject, Tokens.Symbol(n)) => n should be(objectName)}
+    inside(values(4)) { case List(Tokens.DefFact, Tokens.Symbol(n)) => n should be(objectName)}
   }
 
   "PreteParser" should "fail on wrong input" in {

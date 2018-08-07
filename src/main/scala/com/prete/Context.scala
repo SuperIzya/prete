@@ -1,11 +1,11 @@
 package com.prete
-import com.prete.constructs.{Object, Rule}
-import com.prete.parser.PreteAST
+import com.prete.core.fact.Fact
+import com.prete.core.rule.Rule
+import com.prete.parser.{PreteLexer, PreteParser}
 
-trait PreteStructure
-trait Builder {
-  def build(context: Context): PartialFunction[PreteAST, PreteStructure]
-}
-
-case class Context(objects: Map[String, Object] = Map.empty,
-                   rules: Map[String, Rule] = Map.empty)
+case class Context(
+                  lexer: PreteLexer,
+                  parser: PreteParser,
+                  factDefinitions: Map[String, Fact] = Map.empty,
+                  ruleDefinitions: Map[String, Rule] = Map.empty
+                  )

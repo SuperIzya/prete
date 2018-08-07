@@ -1,9 +1,12 @@
 package com.prete.parser
 
-import java.util.function.Predicate
+import com.prete.core.fact.DefFactParser
+import com.prete.core.rule.RuleParser
 
 import scala.util.parsing.combinator._
 import scala.util.parsing.input.{NoPosition, Position, Reader}
+
+case class PreteParserError(location: Location, msg: String) extends PreteCompilationError
 
 class PreteTokenReader(tokens: Seq[PreteToken]) extends Reader[PreteToken] {
   override def first: PreteToken = tokens.head
@@ -12,15 +15,15 @@ class PreteTokenReader(tokens: Seq[PreteToken]) extends Reader[PreteToken] {
   override def rest: Reader[PreteToken] = new PreteTokenReader(tokens.tail)
 }
 
-sealed trait PreteAST
-case class FieldAddress(objName: String, field: String) extends PreteAST
+trait PreteAST
+case class FieldAddressAST(objName: String, field: String) extends PreteAST
 case class Value(value: WithValue[_]) extends PreteAST
 
 trait PreteTokenParser extends Parsers {
   override type Elem = PreteToken
 }
 
-trait BaseParser extends Parsers with PreteTokenParser {
+trait BasicParser extends Parsers with PreteTokenParser {
   import Tokens._
   def identifier: Parser[Symbol] = {
     accept("identifier", { case id @ Symbol(_) => id })
@@ -38,9 +41,16 @@ trait BaseParser extends Parsers with PreteTokenParser {
   }
   def staticValue: Parser[Value] = integer | float | literal
 
-  def fieldAddress: Parser[FieldAddress] = identifier ~ Dot ~ identifier ^^ {
-    case Symbol(name) ~ _ ~ Symbol(field) => FieldAddress(name, field)
+  def fieldAddress: Parser[FieldAddressAST] = identifier ~ Dot ~ identifier ^^ {
+    case Symbol(name) ~ _ ~ Symbol(field) => FieldAddressAST(name, field)
   }
+
+  def argument: Parser[PreteAST] = staticValue | fieldAddress
+
+  def arguments: Parser[List[PreteAST]] =
+    Indent ~ rep1(argument) ~ Dedent ^^ {
+      case _ ~ args ~ _ => args
+    }
 }
 
 trait BlockParser extends Parsers with PreteTokenParser {
@@ -61,11 +71,27 @@ trait BlockParser extends Parsers with PreteTokenParser {
 
 }
 
-case class FieldDefinition(name: String) extends PreteAST
-case class ObjectDefinition(name: String, fields: List[FieldDefinition] = List.empty) extends PreteAST
 
-case class RuleDefinition(name: String, lhs: List[PreteAST], rhs: List[PreteAST]) extends PreteAST
-case class Declaration(name: String, typeName: String) extends PreteAST
-case class ConstCompare(predicate: PreteToken, left: FieldAddress, right: Value) extends PreteAST
-case class FieldsCompare(predicate: PreteToken, left: FieldAddress, right: FieldAddress) extends PreteAST
-case class StaticCompare(predicate: PreteToken, left: Value, right: Value) extends PreteAST
+trait PreteParser extends Parsers
+  with BlockParser
+  with BasicParser
+  with DefFactParser
+  with RuleParser {
+
+  def block: Parser[List[PreteAST]] = phrase(
+    rep(trimBlock(defFact)) ~ rep(trimBlock(defRule)) ^^ {
+      case objs ~ rules => objs ++ rules
+    }
+  )
+
+  def program : Parser[List[PreteAST]] = block
+  def apply(tokens: Seq[PreteToken]): Either[PreteParserError, List[PreteAST]] = {
+    val reader = new PreteTokenReader(tokens)
+    program(reader) match {
+      case NoSuccess(msg, next) => Left(PreteParserError(Location(next.pos.line, next.pos.column), msg))
+      case Success(result, _) => Right(result)
+    }
+  }
+}
+
+object PreteParser extends PreteParser
