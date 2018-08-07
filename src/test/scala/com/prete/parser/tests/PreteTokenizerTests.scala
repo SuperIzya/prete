@@ -2,11 +2,11 @@ package com.prete.parser.tests
 import org.scalatest._
 
 
-import com.prete.parser.{PreteLexer, Tokens}
+import com.prete.parser.{PreteTokenizer, Tokens}
 
-class PreteLexerTests extends FlatSpec with Matchers with EitherValues with Inspectors with Inside {
+class PreteTokenizerTests extends FlatSpec with Matchers with EitherValues with Inspectors with Inside {
 
-  "PreteLexer" should "parse primitive values correctly" in {
+  "PreteTokenizer" should "parse primitive values correctly" in {
 
     val intVal = 1
     val stringVal = "abc"
@@ -14,12 +14,13 @@ class PreteLexerTests extends FlatSpec with Matchers with EitherValues with Insp
     val symbolVal = "abc21313_1230"
     val objectName = "SuperObject"
 
-    val intRes = PreteLexer(s"$intVal")
-    val stringRes = PreteLexer(s""""$stringVal"""")
-    val floatRes = PreteLexer(s"$floatVal")
-    val symbolRes = PreteLexer(s"$symbolVal")
-    val defObjectRes = PreteLexer(s"object $objectName")
+    val tokenizer = PreteTokenizer()
 
+    val intRes = tokenizer(s"$intVal")
+    val stringRes = tokenizer(s""""$stringVal"""")
+    val floatRes = tokenizer(s"$floatVal")
+    val symbolRes = tokenizer(s"$symbolVal")
+    val defObjectRes = tokenizer(s"object $objectName")
 
     val results = Seq(
       intRes,
@@ -44,10 +45,11 @@ class PreteLexerTests extends FlatSpec with Matchers with EitherValues with Insp
     inside(values(4)) { case List(Tokens.DefFact, Tokens.Symbol(n)) => n should be(objectName)}
   }
 
-  "PreteParser" should "fail on wrong input" in {
+  "PreteTokenizer" should "fail on wrong input" in {
+    val tokenizer = PreteTokenizer()
     val results = Seq(
-      PreteLexer("abc98.90cba"),
-      PreteLexer("abc-abc")
+      tokenizer("abc98.90cba"),
+      tokenizer("abc-abc")
     )
 
     forAll(results) { r =>

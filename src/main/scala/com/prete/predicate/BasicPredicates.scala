@@ -24,7 +24,7 @@ object BasicPredicates extends PredicatesBuilder {
     def not: Predicate = Lt
   }
 
-  private val lexers = Map(
+  private val tokenizers = Map(
       "eq" -> { _: Any => Eq },
       "neq" -> { _: Any => Neq },
 //      ">=" -> { _ => Ge },
@@ -35,10 +35,10 @@ object BasicPredicates extends PredicatesBuilder {
 
 
   def inject(context: Context) = {
-    context.lexer.addLexer(lexers)
+    context.tokenizer.addTokenizers(tokenizers)
   }
 
-  def getLexers = lexers
+  def getLexers = tokenizers
 
   def getPredicate: PartialFunction[Predicate, List[Any] => Boolean] = {
     case Eq => x => x(0) == x(1)

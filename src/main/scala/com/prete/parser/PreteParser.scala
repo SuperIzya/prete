@@ -25,6 +25,9 @@ trait PreteTokenParser extends Parsers {
 
 trait BasicParser extends Parsers with PreteTokenParser {
   import Tokens._
+  type ParserTree = Parser[PreteAST]
+  type ParserForest = Parser[List[PreteAST]]
+
   def identifier: Parser[Symbol] = {
     accept("identifier", { case id @ Symbol(_) => id })
   }
@@ -45,12 +48,21 @@ trait BasicParser extends Parsers with PreteTokenParser {
     case Symbol(name) ~ _ ~ Symbol(field) => FieldAddressAST(name, field)
   }
 
-  def argument: Parser[PreteAST] = staticValue | fieldAddress
+  def argument: ParserTree = staticValue | fieldAddress
 
-  def arguments: Parser[List[PreteAST]] =
-    Indent ~ rep1(argument) ~ Dedent ^^ {
-      case _ ~ args ~ _ => args
+  def argumentWithComa: ParserTree = argument <~ Comma ^^ {
+    case arg => arg
+  }
+  def argumentsVertical: ParserForest =
+    Indent ~> rep(argument) <~ Dedent ^^ {
+      case args => args
     }
+  def argumentsHorizontal: ParserForest =
+    OpenBr ~> opt(rep(argumentWithComa) ~ argument) <~ CloseBr ^^ {
+      case Some(args ~ arg) => args :+ arg
+      case None => List.empty
+    }
+  def arguments: ParserForest = argumentsHorizontal | argumentsVertical
 }
 
 trait BlockParser extends Parsers with PreteTokenParser {
@@ -65,26 +77,26 @@ trait BlockParser extends Parsers with PreteTokenParser {
     }
 
   def trimBlock[TypeAST](P: Parser[TypeAST]): Parser[TypeAST] =
-    rep(Indent | Dedent) ~ P ~ rep(Indent | Dedent) ^^ {
-      case _ ~ vals ~ _ => vals
+    rep(Indent | Dedent) ~> P <~ rep(Indent | Dedent) ^^ {
+      case vals => vals
     }
 
 }
 
 
-trait PreteParser extends Parsers
+class PreteParser extends Parsers
   with BlockParser
   with BasicParser
   with DefFactParser
   with RuleParser {
 
-  def block: Parser[List[PreteAST]] = phrase(
+  def block: ParserForest = phrase(
     rep(trimBlock(defFact)) ~ rep(trimBlock(defRule)) ^^ {
       case objs ~ rules => objs ++ rules
     }
   )
 
-  def program : Parser[List[PreteAST]] = block
+  def program : ParserForest = block
   def apply(tokens: Seq[PreteToken]): Either[PreteParserError, List[PreteAST]] = {
     val reader = new PreteTokenReader(tokens)
     program(reader) match {
@@ -94,4 +106,6 @@ trait PreteParser extends Parsers
   }
 }
 
-object PreteParser extends PreteParser
+object PreteParser {
+  def apply(): PreteParser = new PreteParser()
+}

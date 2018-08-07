@@ -34,8 +34,8 @@ object Tokens {
   case object Arrow extends PreteToken
   case object BackArrow extends PreteToken
   case object Dot extends PreteToken
-  case object Comma extends PreteToken
 
+  case object Comma extends PreteToken
   case object OpenBr extends PreteToken
   case object CloseBr extends PreteToken
 
@@ -45,7 +45,7 @@ object Tokens {
 }
 
 
-trait PreteLexer extends RegexParsers {
+class PreteTokenizer extends RegexParsers {
   import Tokens._
   override def skipWhitespace = true
   override val whiteSpace = "[ \t\r\f]+".r
@@ -53,8 +53,8 @@ trait PreteLexer extends RegexParsers {
   val intRe = "[0-9]+"
   type PreteTokenParser = Parser[PreteToken]
   type PreteParserFunction = _String => PreteToken
-  private var additionalLexers: Map[_String, PreteParserFunction] = Map.empty
-  private val coreLexers = List(
+  protected var additionalTokenizers: Map[_String, PreteParserFunction] = Map.empty
+  protected val coreTokenizers = List(
     "object".r ^^ { _ => DefFact },
     "rule".r ^^ { _ => DefRule },
 
@@ -62,7 +62,7 @@ trait PreteLexer extends RegexParsers {
     ":".r ^^ { _ => Colon },
     "<-".r ^^ { _ => BackArrow },
   )
-  private val basicLexers = List(
+  protected val basicTokenizers = List(
 
     s""""$symbolRe"""".r ^^ { t => String(t.substring(1, t.length - 1)) },
     symbolRe.r ^^ { x => Symbol(x) },
@@ -78,25 +78,25 @@ trait PreteLexer extends RegexParsers {
     "," ^^ { _ => Comma },
   )
 
-  private def toLexer(f: (_String, PreteParserFunction)): Parser[PreteToken] =
+  private def toTokenizer(f: (_String, PreteParserFunction)): Parser[PreteToken] =
     s"${f._1}".r ^^ f._2
 
-  def addLexer(regex: _String, func: PreteParserFunction) = {
-    additionalLexers = additionalLexers + (regex -> func)
+  def addTokenizer(regex: _String, func: PreteParserFunction): PreteTokenizer = {
+    additionalTokenizers = additionalTokenizers + (regex -> func)
     this
   }
-  def addLexer(l: Map[_String, PreteParserFunction]) = {
-    additionalLexers = additionalLexers ++ l
+  def addTokenizers(l: Map[_String, PreteParserFunction]): PreteTokenizer = {
+    additionalTokenizers = additionalTokenizers ++ l
     this
   }
 
-  def lexers: List[PreteTokenParser] =
-    coreLexers ++
-    additionalLexers.map{ toLexer } ++
-      basicLexers
+  def tokenizers: List[PreteTokenParser] =
+    coreTokenizers ++
+    additionalTokenizers.map{ toTokenizer } ++
+      basicTokenizers
 
   def devour: Parser[List[PreteToken]] = {
-    val head::tail = lexers
+    val head::tail = tokenizers
     phrase(
       rep1( tail.foldLeft(head)(_ | _) )
     ) ^^ { processIndentations(_) }
@@ -142,4 +142,6 @@ trait PreteLexer extends RegexParsers {
   }
 }
 
-object PreteLexer extends PreteLexer
+object PreteTokenizer {
+  def apply(): PreteTokenizer = new PreteTokenizer()
+}

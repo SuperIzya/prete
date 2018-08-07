@@ -1,23 +1,25 @@
 package com.prete.parser.tests
-import com.prete.PreteCompiler
+import com.prete.Environment
 import com.prete.core.fact.{FactDefinition, FieldDefinition}
 import org.scalatest._
 
 class PreteParserTests extends FlatSpec with Matchers with EitherValues with Inspectors with Inside {
   "PreteParser" should "parse proper object definition" in {
 
-    val result = PreteCompiler(
-      """
+    val code = """
         |object SuperObject1
         |
         |object SuperObject2
         | field1
         |
-      """.stripMargin)
+      """.stripMargin
+
+    val env = Environment()
+    val result = env.compile(code)
 
     result should be('right)
     val lst: List[Any] = result.right.value.asInstanceOf[List[_]]
-    (lst(0), lst(1)) match {
+    (lst.head, lst(1)) match {
       case (FactDefinition(name1, fields1), FactDefinition(name2, fields2)) => {
         name1 should be ("SuperObject1")
         name2 should be ("SuperObject2")
