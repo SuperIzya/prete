@@ -8,7 +8,7 @@ case class FieldDefinition(name: String) extends PreteAST
 case class FactDefinition(name: String,
                           fields: List[FieldDefinition]) extends PreteAST
 
-trait DefFactParser extends Parsers
+trait FactParser extends Parsers
   with PreteTokenParser
   with BasicParser
   with BlockParser {

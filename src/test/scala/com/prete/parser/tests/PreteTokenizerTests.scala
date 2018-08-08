@@ -1,4 +1,5 @@
 package com.prete.parser.tests
+import com.prete.core.rule.{Declaration, FieldAddress}
 import org.scalatest._
 import com.prete.parser.{PreteTokenizer, Tokens, WithValue}
 
@@ -7,7 +8,8 @@ class PreteTokenizerTests extends FlatSpec with Matchers with EitherValues with 
   "PreteTokenizer" should "parse primitive values correctly" in {
     val tokenizer = PreteTokenizer()
 
-    val data = List(1, -1, +1, "\"abx\"", "asdsad22344_234sdf32", "\"a234sadf asdasd 32\"", 1.1f, -32.23f)
+    val data = List(1, -1, +1, "\"abx\"", "asdsad22344_234sdf32",
+      "\"a234sadf asdasd 32\"", 1.1f, -32.23f)
     val results1 = data.map{ v => (v, tokenizer(s"$v"))}
     forAll(results1) { r =>
       r._2 should be ('right)
@@ -25,8 +27,8 @@ class PreteTokenizerTests extends FlatSpec with Matchers with EitherValues with 
 
   "PreteTokenizer" should "fail on wrong input" in {
     val tokenizer = PreteTokenizer()
-    val results = Seq(
-      tokenizer("abc98.90cba"),
+    val results = List(
+
       tokenizer("abc-abc")
     )
 

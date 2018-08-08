@@ -41,7 +41,7 @@ object Tokens {
 
   case object DefFact extends PreteToken
   case object DefRule extends PreteToken
-
+  case object Whitespace extends PreteToken
 }
 
 
@@ -49,29 +49,32 @@ class PreteTokenizer extends RegexParsers {
   import Tokens._
   type PreteTokenParser = Parser[PreteToken]
   type PreteParserFunction = _String => PreteToken
+  type TokenizerPair = (_String, PreteParserFunction)
+  type TokenizersMap = Map[_String, PreteParserFunction]
 
   val whiteSpaceRe = """[ \t\r\f]+"""
   val symbolRe = "[a-zA-Z_][a-zA-Z_0-9]*"
-  val stringRe = s""""${symbolRe}($whiteSpaceRe$symbolRe)*""""
-  val intRe = "[0-9]+"
+  val stringRe = s""""[^"]*""""
+  val numRe = "[0-9]+"
+  val floatRe = s"""$numRe.$numRe"""
 
   override def skipWhitespace = true
-  override val whiteSpace = "[ \t\r\f]+".r
-  protected var additionalTokenizers: Map[_String, PreteParserFunction] = Map.empty
+  override val whiteSpace = whiteSpaceRe.r
+  protected var additionalTokenizers: TokenizersMap = Map.empty
   protected val coreTokenizers = List(
-    "object".r ^^ { _ => DefFact },
-    "rule".r ^^ { _ => DefRule },
+    "fact" ^^ { _ => DefFact },
+    "rule" ^^ { _ => DefRule },
 
-    "=>".r ^^ { _ => Arrow },
-    ":".r ^^ { _ => Colon },
-    "<-".r ^^ { _ => BackArrow },
+    "=>" ^^ { _ => Arrow },
+    ":" ^^ { _ => Colon },
+    "<-" ^^ { _ => BackArrow },
   )
   protected val basicTokenizers = List(
 
     stringRe.r ^^ { t => String(t.substring(1, t.length - 1)) },
     symbolRe.r ^^ { x => Symbol(x) },
-    s"(\\+|\\-)?$intRe.$intRe".r ^^ { x => Float(x.toFloat) },
-    s"(\\+|\\-)?$intRe".r ^^ { x => Integer(x.toInt) },
+    s"(\\+|\\-)?$floatRe".r ^^ { x => Float(x.toFloat) },
+    s"(\\+|\\-)?$numRe".r ^^ { x => Integer(x.toInt) },
 
     "\n[ ]*".r ^^ { whitespace => IndentCount(whitespace.length - 1) },
 
@@ -80,19 +83,22 @@ class PreteTokenizer extends RegexParsers {
 
     "." ^^ { _ => Dot },
     "," ^^ { _ => Comma },
+    whiteSpaceRe ^^ { _ => Whitespace }
   )
 
-  private def toTokenizer(f: (_String, PreteParserFunction)): Parser[PreteToken] =
+  private def toTokenizer(f: TokenizerPair): Parser[PreteToken] =
     s"${f._1}".r ^^ f._2
 
   def addTokenizer(regex: _String, func: PreteParserFunction): PreteTokenizer = {
     additionalTokenizers = additionalTokenizers + (regex -> func)
     this
   }
-  def addTokenizers(l: Map[_String, PreteParserFunction]): PreteTokenizer = {
+  def addTokenizers(l: TokenizersMap): PreteTokenizer = {
     additionalTokenizers = additionalTokenizers ++ l
     this
   }
+
+  def apply(l: TokenizersMap) = addTokenizers(l)
 
   def tokenizers: List[PreteTokenParser] =
     coreTokenizers ++

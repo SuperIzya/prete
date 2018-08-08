@@ -1,6 +1,6 @@
 package com.prete.parser
 
-import com.prete.core.fact.DefFactParser
+import com.prete.core.fact.FactParser
 import com.prete.core.rule.RuleParser
 
 import scala.util.parsing.combinator._
@@ -58,9 +58,8 @@ trait BasicParser extends Parsers with PreteTokenParser {
       case args => args
     }
   def argumentsHorizontal: ParserForest =
-    OpenBr ~> opt(rep(argumentWithComa) ~ argument) <~ CloseBr ^^ {
-      case Some(args ~ arg) => args :+ arg
-      case None => List.empty
+    OpenBr ~> rep(argumentWithComa) ~ argument <~ CloseBr ^^ {
+      case args ~ arg => args :+ arg
     }
   def arguments: ParserForest = argumentsHorizontal | argumentsVertical
 }
@@ -87,7 +86,7 @@ trait BlockParser extends Parsers with PreteTokenParser {
 class PreteParser extends Parsers
   with BlockParser
   with BasicParser
-  with DefFactParser
+  with FactParser
   with RuleParser {
 
   def block: ParserForest = phrase(
