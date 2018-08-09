@@ -1,7 +1,8 @@
 package com.prete.core.command
+import com.prete.core.network.Blueprint
 
 object BasicCommands extends CommandsBuilder {
-  override var tokenizers: TokenizersMap = List(
+  override var tokenizers: TokenizersMap[_, _] = List(
     "print",
     "debug"
   ).map(cmd =>
@@ -9,4 +10,7 @@ object BasicCommands extends CommandsBuilder {
   ).toMap
 
 
+  // TODO: Define a body
+  def blueprint(ast: CommandCall) =
+    Left(CommandCompilationError("Nope", ""))
 }
