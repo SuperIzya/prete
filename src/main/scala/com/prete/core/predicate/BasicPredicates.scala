@@ -14,7 +14,7 @@ object BasicPredicates extends PredicatesBuilder {
   case object Gt extends PreteToken with Predicate
   case object Ge extends PreteToken with Predicate
 
-  override var tokenizers: TokenizersMap[_, _] = (
+  override var tokenizers: TokenizersMap = Map(
       "eq" -> { _ => Eq },
       "neq" -> { _ => Neq },
 //      ">=" -> { _ => Ge },
@@ -30,7 +30,7 @@ object BasicPredicates extends PredicatesBuilder {
 
   def blueprint(predicate: Predicate, args: List[Any]): Compiler =
     predicate match {
-      case Eq | Neq | Lt | Gt | Le | Ge =>
+      case Eq | Neq | Lt | Gt | Le | Ge => null // TODO !!!
 
     }
 

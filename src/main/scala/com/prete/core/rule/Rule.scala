@@ -1,19 +1,12 @@
 package com.prete.core.rule
 
-import com.prete.parser.{PreteAST, PreteCompilationError, Value}
 import com.prete.Context
-import com.prete.core.network.Blueprint
 import com.prete.core.predicate.{Predicate, PredicateClause, VarDeclaration}
+import com.prete.parser.{PreteAST, Value}
 
-trait Condition extends Blueprint
-trait AlphaCondition extends Condition
-trait BetaCondition extends Condition
 case class Rule(name: String,
                 conditions: List[Condition] = List.empty,
                 command: Option[_ => _] = None)
-case class RuleParseError(msg: String) extends Throwable with PreteCompilationError
-
-case class RuleCompilationError(rule: String, msg: String) extends PreteCompilationError
 
 object Rule {
   type FieldAddress = (Int, String)
@@ -52,7 +45,7 @@ object Rule {
           Right(d)
         }
       }
-      case clause @ PredicateClause(p, args) =>
+      case clause @ PredicateClause(p, args) => null //  TODO !!!
 
     }
 

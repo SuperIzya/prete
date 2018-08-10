@@ -1,12 +1,9 @@
 package com.prete.core.fact
 
-import com.prete.parser.{BasicParser, BlockParser, PreteAST, PreteTokenParser}
+import com.prete.parser.{BasicParser, BlockParser, PreteTokenParser}
 
 import scala.util.parsing.combinator.Parsers
 
-case class FieldDefinition(name: String) extends PreteAST
-case class FactDefinition(name: String,
-                          fields: List[FieldDefinition]) extends PreteAST
 
 trait FactParser extends Parsers
   with PreteTokenParser
