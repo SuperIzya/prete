@@ -1,5 +1,4 @@
 package com.prete.parser.tests
-import com.prete.core.rule.{Declaration, FieldAddress}
 import org.scalatest._
 import com.prete.parser.{PreteTokenizer, Tokens, WithValue}
 
