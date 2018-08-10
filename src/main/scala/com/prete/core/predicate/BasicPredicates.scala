@@ -5,8 +5,6 @@ import com.prete.parser.PreteToken
 
 object BasicPredicates extends PredicatesBuilder {
 
-  type Compiler = PartialFunction[Predicate, Either[PredicateCompilationError, Blueprint]]
-
   case object Eq extends PreteToken with Predicate
   case object Neq extends PreteToken with Predicate
   case object Lt extends PreteToken with Predicate
@@ -14,7 +12,7 @@ object BasicPredicates extends PredicatesBuilder {
   case object Gt extends PreteToken with Predicate
   case object Ge extends PreteToken with Predicate
 
-  override var tokenizers: TokenizersMap = Map(
+  tokenizers = Map(
       "eq" -> { _ => Eq },
       "neq" -> { _ => Neq },
 //      ">=" -> { _ => Ge },
@@ -28,11 +26,6 @@ object BasicPredicates extends PredicatesBuilder {
     case Neq => x => x(0) != x(1)
   }
 
-  def blueprint(predicate: Predicate, args: List[Any]): Compiler =
-    predicate match {
-      case Eq | Neq | Lt | Gt | Le | Ge => null // TODO !!!
-
-    }
 
 
 }

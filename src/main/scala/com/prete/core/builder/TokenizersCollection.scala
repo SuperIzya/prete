@@ -1,6 +1,6 @@
 package com.prete.core.builder
 
-trait TokenizersCollection[+Token] {
+trait TokenizersCollection[Token] {
   type Tokenizer = String => Token
   type TokenizersMap = Map[String, Tokenizer]
 

@@ -1,15 +1,15 @@
 package com.prete.core.predicate
 
 import com.prete.core.builder.PreteBuilder
-import com.prete.parser.{PreteAST, PreteToken}
 
 trait PredicatesBuilder
   extends PreteBuilder[PredicateTokenType, PredicateClause] {
 
   def getPredicate: PartialFunction[Predicate, List[Any] => Boolean]
 
-  override def token(data: PredicateTokenType) = PredicateToken(data)
+  override def transformToToken[D, R >: PredicateTokenType](data: D): PredicateTokenType =
+    PredicateToken(data.asInstanceOf[Predicate])
 
-  override def blueprint(clause: PreteAST) =
-    Left(PredicateCompilationError(clause.toString, ""))
+  override def blueprint(ast: PredicateClause) =
+    Left(PredicateCompilationError(ast.predicate.toString, "Compilation not implemented yet"))
 }
