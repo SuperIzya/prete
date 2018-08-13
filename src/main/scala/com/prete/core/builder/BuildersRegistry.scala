@@ -1,6 +1,6 @@
 package com.prete.core.builder
 
-import com.prete.parser.{PreteAST, PreteToken}
+import com.prete.parser.{CompilationResult, PreteAST, PreteToken}
 
 
 trait BuildersRegistry[Builder <: PreteBuilder[Token, AST], Token <: PreteToken, AST <: PreteAST] {
@@ -13,7 +13,7 @@ trait BuildersRegistry[Builder <: PreteBuilder[Token, AST], Token <: PreteToken,
 
   def apply(builder: Builder): Unit = addBuilder(builder)
 
-  def getTokenizers: Map[String, String => PreteToken] =  builders
+  def getTokenizers: Map[String, String => CompilationResult[PreteToken]] =  builders
     .flatMap(x => x.getTokenizers.map{ ((y: Token) => x.transformToToken(y), _) })
     .map{ x => (x._2._1, (s: String) => x._1(x._2._2(s))) }
     .toMap

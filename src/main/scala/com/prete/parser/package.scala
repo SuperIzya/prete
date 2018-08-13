@@ -12,6 +12,7 @@ package object parser {
     override type Elem = PreteToken
   }
 
+  type CompilationResult[Result] = Either[PreteCompilationError, Result]
 
   case class Location(line: Int, column: Int) {
     override def toString = s"$line:$column"

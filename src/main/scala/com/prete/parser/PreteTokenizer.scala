@@ -7,7 +7,7 @@ import scala.util.parsing.combinator.RegexParsers
 class PreteTokenizer extends RegexParsers {
   import Tokens._
   type PreteTokenParser = Parser[PreteToken]
-  type PreteParserFunction = _String => PreteToken
+  type PreteParserFunction = _String => CompilationResult[PreteToken]
   type TokenizerPair = (_String, PreteParserFunction)
   type TokenizersMap = Map[_String, PreteParserFunction]
 

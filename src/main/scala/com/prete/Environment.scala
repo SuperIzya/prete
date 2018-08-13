@@ -22,12 +22,12 @@ class Environment {
     val allTokenizers = List(
       context.commandsRegistry.getTokenizers,
       context.predicatesRegistry.getTokenizers
-    ).foldLeft(Map.empty[String, String => PreteToken])(_ ++ _)
+    ).foldLeft(Map.empty[String, String => CompilationResult[PreteToken]])(_ ++ _)
 
     context.tokenizer.addTokenizers(allTokenizers)
   }
 
-  def parse(code: String): Either[PreteCompilationError, List[PreteAST]] = {
+  def parse(code: String): CompilationResult[List[PreteAST]] = {
     for {
       tokens <- context.tokenizer(code).right
       ast <- context.parser(tokens).right

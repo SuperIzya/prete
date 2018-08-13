@@ -1,7 +1,7 @@
 package com.prete.core.command
 
 import com.prete.core.builder.PreteBuilder
-import com.prete.parser.PreteToken
+import com.prete.parser.{CompilationResult, PreteToken}
 
 
 trait CommandsBuilder extends PreteBuilder[CommandCallToken, CommandCall] {
@@ -11,8 +11,10 @@ trait CommandsBuilder extends PreteBuilder[CommandCallToken, CommandCall] {
 
   def callToken(cmd: String) = CommandCallToken(cmd)
 
-  override def transformToToken[D, R >: PreteToken](data: D): R = data match {
-    case Symbol(name) => CommandCallToken(name)
-    case CommandCallToken(name) => CommandCallToken(name)
+  override def transformToToken[D, R >: PreteToken](data: D): CompilationResult[R] = data match {
+    case Symbol(name) => Right(CommandCallToken(name))
+    case _ => Left(
+      CommandCompilationError("Unknown", s"Provided argument of type ${data.getClass} was not as expected: prete.Tokens.Symbol")
+    )
   }
 }

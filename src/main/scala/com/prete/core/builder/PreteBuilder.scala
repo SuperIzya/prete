@@ -1,13 +1,13 @@
 package com.prete.core.builder
 
 import com.prete.core.network.Blueprint
-import com.prete.parser.{PreteAST, PreteCompilationError, PreteToken}
+import com.prete.parser.{CompilationResult, PreteAST, PreteToken}
 
 import scala.language.higherKinds
 
 trait PreteBuilder[Token <: PreteToken, AST <: PreteAST] extends TokenizersCollection[Token] {
-  def transformToToken[D, R >: PreteToken](data: D): R
-  def blueprint(ast: AST): Either[PreteCompilationError, Blueprint]
+  def transformToToken[D, R >: PreteToken](data: D): CompilationResult[R]
+  def blueprint(ast: AST): CompilationResult[Blueprint]
 }
 
 
