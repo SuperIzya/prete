@@ -1,15 +1,19 @@
 package com.prete.parser
 
+import cats.instances.map
+
+import scala.annotation.tailrec
+import scala.util.matching.Regex
 import scala.util.parsing.combinator.RegexParsers
 
 
 
 class PreteTokenizer extends RegexParsers {
   import Tokens._
-  type PreteTokenParser = Parser[PreteToken]
-  type PreteParserFunction = _String => CompilationResult[PreteToken]
-  type TokenizerPair = (_String, PreteParserFunction)
-  type TokenizersMap = Map[_String, PreteParserFunction]
+  type PreteTokenParser = Parser[CompilationResult[PreteAST]]
+  type PreteParserFunction = String => PreteAST
+  type TokenizerPair = (String, PreteParserFunction)
+  type TokenizersMap = List[TokenizerPair]
 
   val whiteSpaceRe = """[ \t\r\f]+"""
   val symbolRe = "[a-zA-Z_][a-zA-Z_0-9]*"
@@ -18,8 +22,8 @@ class PreteTokenizer extends RegexParsers {
   val floatRe = s"""$numRe.$numRe"""
 
   override def skipWhitespace = true
-  override val whiteSpace = whiteSpaceRe.r
-  protected var additionalTokenizers: TokenizersMap = Map.empty
+  override val whiteSpace: Regex = whiteSpaceRe.r
+  protected var additionalTokenizers: TokenizersMap = List.empty
   protected val coreTokenizers = List(
     "fact" ^^ { _ => DefFact },
     "rule" ^^ { _ => DefRule },
@@ -29,8 +33,7 @@ class PreteTokenizer extends RegexParsers {
     "<-" ^^ { _ => BackArrow },
   )
   protected val basicTokenizers = List(
-
-    stringRe.r ^^ { t => String(t.substring(1, t.length - 1)) },
+    stringRe.r ^^ { t => Text(t.substring(1, t.length - 1)) },
     symbolRe.r ^^ { x => Symbol(x) },
     s"(\\+|\\-)?$floatRe".r ^^ { x => Float(x.toFloat) },
     s"(\\+|\\-)?$numRe".r ^^ { x => Integer(x.toInt) },
@@ -45,26 +48,42 @@ class PreteTokenizer extends RegexParsers {
     whiteSpaceRe ^^ { _ => Whitespace }
   )
 
-  private def toTokenizer(f: TokenizerPair): Parser[PreteToken] =
+  private def toTokenizer(f: TokenizerPair): Parser[PreteAST] =
     s"${f._1}".r ^^ f._2
 
-  def addTokenizer(regex: _String, func: PreteParserFunction): PreteTokenizer = {
-    additionalTokenizers = additionalTokenizers + (regex -> func)
+  def addTokenizer(regex: String, func: PreteParserFunction): PreteTokenizer = {
+    additionalTokenizers :+= (regex -> func)
     this
   }
   def addTokenizers(l: TokenizersMap): PreteTokenizer = {
-    additionalTokenizers = additionalTokenizers ++ l
+    additionalTokenizers ++= l
+    this
+  }
+  def addTokenizers(l: Map[String, PreteParserFunction]): PreteTokenizer = {
+    additionalTokenizers ++= l
     this
   }
 
-  def apply(l: TokenizersMap) = addTokenizers(l)
+  def apply(l: TokenizersMap): PreteTokenizer = addTokenizers(l)
 
-  def tokenizers: List[PreteTokenParser] =
+  def wrap(l: List[Parser[PreteAST]]): List[PreteTokenParser] = {
+
+    type Result = List[PreteTokenParser]
+
+    @tailrec
+    def rec(n: Int, acc: Result = List.empty): Result =
+      if (n >= l.length) acc
+      else rec(n + 1, acc :+ l.head.map(Right(_)))
+
+    rec(0)
+  }
+  def tokenizers: List[PreteTokenParser] = wrap(
     coreTokenizers ++
     additionalTokenizers.map{ toTokenizer } ++
       basicTokenizers
+    )
 
-  def devour: Parser[List[PreteToken]] = {
+  def devour: Parser[List[PreteAST]] = {
     val head::tail = tokenizers
     phrase(
       rep1( tail.foldLeft(head)(_ | _) )
@@ -72,8 +91,8 @@ class PreteTokenizer extends RegexParsers {
   }
 
 
-  def processIndentations(tokens: List[PreteToken],
-                          indents: List[Int] = List(0)): List[PreteToken] = {
+  def processIndentations(tokens: List[PreteAST],
+                          indents: List[Int] = List(0)): List[PreteAST] = {
     tokens.headOption match {
 
       // if there is an increase in indentation level, we push this new level into the stack
@@ -88,7 +107,7 @@ class PreteTokenizer extends RegexParsers {
         (dropped map (_ => Dedent)) ::: processIndentations(tokens.tail, kept)
 
       // if the indentation level stays unchanged, no tokens are produced
-      // if the identation level is 0 then it's just a separation line
+      // if the indentation level is 0 then it's just a separation line
       case Some(IndentCount(spaces)) if spaces == 0 || spaces == indents.head =>
         processIndentations(tokens.tail, indents)
 
@@ -101,9 +120,9 @@ class PreteTokenizer extends RegexParsers {
       case None =>
         indents.filter(_ > 0).map(_ => Dedent)
 
-    }
+    } map
   }
-  def apply(code: _String): Either[PreteLexerError, List[PreteToken]] = {
+  def apply(code: String): Either[PreteLexerError, List[PreteAST]] = {
     parse(devour, code) match {
       case NoSuccess(msg, next) => Left(PreteLexerError(Location(next.pos.line, next.pos.column), msg))
       case Success(result, _) => Right(result)

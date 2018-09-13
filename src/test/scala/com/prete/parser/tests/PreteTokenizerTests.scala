@@ -15,7 +15,7 @@ class PreteTokenizerTests extends FlatSpec with Matchers with EitherValues with 
       r._2.right.value shouldNot be(empty)
       val res = r._2.right.value.head.asInstanceOf[WithValue[_]]
       res match {
-        case _: Tokens.String =>
+        case _: Tokens.Text =>
           val str = r._1.asInstanceOf[String]
           val v = str.substring(1, str.length - 1)
           res.value should be(v)

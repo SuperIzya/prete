@@ -10,9 +10,9 @@ package object rule {
   trait BetaCondition extends Condition
 
   case class RuleDefinition(name: String, lhs: List[PreteAST], rhs: List[PreteAST]) extends PreteAST
-  case class ConstCompare(predicate: PreteToken, left: FieldAddressAST, right: Value) extends PreteAST
-  case class FieldsCompare(predicate: PreteToken, left: FieldAddressAST, right: FieldAddressAST) extends PreteAST
-  case class StaticCompare(predicate: PreteToken, left: Value, right: Value) extends PreteAST
+  case class ConstCompare(predicate: PreteAST, left: GetField, right: Value) extends PreteAST
+  case class FieldsCompare(predicate: PreteAST, left: GetField, right: GetField) extends PreteAST
+  case class StaticCompare(predicate: PreteAST, left: Value, right: Value) extends PreteAST
 
   case class RuleParseError(msg: String) extends Throwable with PreteCompilationError
 

@@ -22,7 +22,7 @@ class Environment {
     val allTokenizers = List(
       context.commandsRegistry.getTokenizers,
       context.predicatesRegistry.getTokenizers
-    ).foldLeft(Map.empty[String, String => CompilationResult[PreteToken]])(_ ++ _)
+    ).foldLeft(Map.empty[String, String => CompilationResult[PreteAST]])(_ ++ _)
 
     context.tokenizer.addTokenizers(allTokenizers)
   }

@@ -4,12 +4,12 @@ import scala.util.parsing.combinator.Parsers
 
 package object parser {
 
-  trait PreteToken
-  trait WithValue[T] { this: PreteToken =>
+  trait PreteAST
+  trait WithValue[T] { this: PreteAST =>
     val value: T
   }
   trait PreteTokenParser extends Parsers {
-    override type Elem = PreteToken
+    override type Elem = PreteAST
   }
 
   type CompilationResult[Result] = Either[PreteCompilationError, Result]
@@ -22,8 +22,7 @@ package object parser {
   case class PreteParserError(location: Location, msg: String) extends PreteCompilationError
 
 
-  trait PreteAST
-  case class FieldAddressAST(objName: String, field: String) extends PreteAST
+  case class GetField(objName: String, field: String) extends PreteAST
   case class Value(value: WithValue[_]) extends PreteAST
 
 

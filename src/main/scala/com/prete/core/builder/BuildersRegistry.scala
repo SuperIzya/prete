@@ -1,20 +1,21 @@
 package com.prete.core.builder
 
-import com.prete.parser.{CompilationResult, PreteAST, PreteToken}
+import com.prete.parser.{CompilationResult, PreteAST}
 
 
-trait BuildersRegistry[Builder <: PreteBuilder[Token, AST], Token <: PreteToken, AST <: PreteAST] {
+trait BuildersRegistry[Builder <: PreteBuilder[Token, AST], Token, AST <: PreteAST] {
   protected var builders = List.empty[Builder]
   type Tokenizer = String => Token
 
-  def addBuilder[B <: Builder](builder: B): Unit = {
+  def addBuilder[B <: Builder](builder: B) = {
     builders :+= builder
+    this
   }
 
-  def apply(builder: Builder): Unit = addBuilder(builder)
+  def apply(builder: Builder) = addBuilder(builder)
 
-  def getTokenizers: Map[String, String => CompilationResult[PreteToken]] =  builders
-    .flatMap(x => x.getTokenizers.map{ ((y: Token) => x.transformToToken(y), _) })
+  def getTokenizers: Map[String, String => CompilationResult[PreteAST]] =  builders
+    .flatMap(x => x.getTokenizers.map{ (x.transformToToken(_), _) })
     .map{ x => (x._2._1, (s: String) => x._1(x._2._2(s))) }
     .toMap
 

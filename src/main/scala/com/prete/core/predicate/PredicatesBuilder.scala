@@ -12,7 +12,7 @@ trait PredicatesBuilder
     data match {
       case predicate: Predicate =>
         Right(
-          PredicateToken(predicate)
+          PredicateAST(predicate)
         )
       case _ =>
         Left(

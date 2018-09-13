@@ -13,7 +13,7 @@ trait BasicParser extends Parsers with PreteTokenParser {
   }
 
   def literal: Parser[Value] = {
-    accept("string literal", { case lit @ String(_) => Value(lit) })
+    accept("string literal", { case lit @ Text(_) => Value(lit) })
   }
 
   def float: Parser[Value] = {
@@ -24,8 +24,8 @@ trait BasicParser extends Parsers with PreteTokenParser {
   }
   def staticValue: Parser[Value] = integer | float | literal
 
-  def fieldAddress: Parser[FieldAddressAST] = identifier ~ Dot ~ identifier ^^ {
-    case Symbol(name) ~ _ ~ Symbol(field) => FieldAddressAST(name, field)
+  def fieldAddress: Parser[GetField] = identifier ~ Dot ~ identifier ^^ {
+    case Symbol(name) ~ _ ~ Symbol(field) => GetField(name, field)
   }
 
   def argument: ParserTree = staticValue | fieldAddress

@@ -19,7 +19,7 @@ class PreteParser extends Parsers
   )
 
   def program : ParserForest = block
-  def apply(tokens: Seq[PreteToken]): Either[PreteParserError, List[PreteAST]] = {
+  def apply(tokens: Seq[PreteAST]): Either[PreteParserError, List[PreteAST]] = {
     val reader = new PreteTokenReader(tokens)
     program(reader) match {
       case NoSuccess(msg, next) => Left(PreteParserError(Location(next.pos.line, next.pos.column), msg))

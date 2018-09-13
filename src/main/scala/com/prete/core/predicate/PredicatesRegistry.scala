@@ -1,9 +1,9 @@
 package com.prete.core.predicate
 
 import com.prete.core.builder.BuildersRegistry
-import com.prete.parser.PreteToken
+import com.prete.parser.PreteAST
 
-class PredicatesRegistry extends BuildersRegistry[PredicatesBuilder, Predicate with PreteToken, PredicateClause] {
+class PredicatesRegistry extends BuildersRegistry[PredicatesBuilder, Predicate with PreteAST, PredicateClause] {
 
   def getPredicate(predicate: Predicate) = {
     val l = builders.map( _.getPredicate )
